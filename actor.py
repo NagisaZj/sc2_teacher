@@ -59,11 +59,11 @@ class ACnet:
             with tf.variable_scope(scope): #else, build local network
                 self.s = tf.placeholder(tf.float32, [None, scr_pixels, scr_pixels, scr_num], "S")
                 self.available = tf.placeholder(tf.float32, [None, available_len_used], "available_actions")
-                self.a0 = tf.placeholder(tf.int32,[None,1],"a0")
+                self.a0 = tf.placeholder(tf.float32,[None,1],"a0")
                 self.a1 = tf.placeholder(tf.float32, [None, 1], "a1")
                 self.a2 = tf.placeholder(tf.float32, [None, 1], "a2")
                 self.v_target = tf.placeholder(tf.float32, [None, 1], 'Vtarget')
-                self.a0_in = tf.placeholder(tf.int32, [None, 1], "a0_in")
+                self.a0_in = tf.placeholder(tf.float32, [None, 1], "a0_in")
                 self.a1_in = tf.placeholder(tf.float32, [None, 1], "a1_in")
                 self.a2_in = tf.placeholder(tf.float32, [None, 1], "a2_in")
                 self._build_net()
@@ -82,9 +82,9 @@ class ACnet:
             normal_dist_2 = tf.contrib.distributions.Normal(mu_2, sigma_2)
 
             with tf.name_scope("a_loss"):    #build loss function
-                loss_0 = tf.reduce_sum(tf.square(tf.subtract(self.a0_in - self.a0)))
-                loss_1 = tf.reduce_sum(tf.square(self.a1_in - normal_dist_1.mean())*normal_dist_1.varience())
-                loss_2 = tf.reduce_sum(tf.square(self.a2_in - normal_dist_2.mean()) * normal_dist_2.varience())
+                loss_0 = tf.reduce_sum(tf.square(tf.subtract(self.a0_in , self.a0)))
+                loss_1 = tf.reduce_sum(tf.square(self.a1_in - normal_dist_1.mean())*normal_dist_1.variance())
+                loss_2 = tf.reduce_sum(tf.square(self.a2_in - normal_dist_2.mean()) * normal_dist_2.variance())
 
                 self.a_loss = loss_0 + loss_1 + loss_2
 
@@ -195,13 +195,13 @@ class Worker:
     def work(self):
         global GLOBAL_RUNNING_R, GLOBAL_EP
         total_step = 1
-        buffer_s, buffer_a0 ,buffer_a1, buffer_a2, buffer_r,buffer_avail,buffer_a0_self = [], [],[], [],[],[],[]
+        buffer_s, buffer_a0 ,buffer_a1, buffer_a2, buffer_r,buffer_avail,buffer_a0_self = [], [],[],[],[],[],[]
         while not COORD.should_stop() and GLOBAL_EP < MAX_GLOBAL_EP:
             state,_,_,info = self.env.reset()  #timestep[0] contains rewards, observations, etc. SEE pysc2 FOR MORE INFO
             ep_r=0
             while True:
                 a0,a1,a2 = teacher.action(state)
-                a0_self = self.AC.choose_action(state,info)
+                a0_self,_,_ = self.AC.choose_action([state],[info])
                 action = 1 if a0 == 0 else int(2 + a1 * scr_pixels + a2)
                 buffer_s.append([state])
                 buffer_avail.append([info])
@@ -233,13 +233,13 @@ class Worker:
                         self.AC.a0: buffer_a0_self,
                         self.AC.a1_in: buffer_a1,
                         self.AC.a2_in: buffer_a2,
-                        self.SC.a0_in:bufer_a0,
+                        self.AC.a0_in:buffer_a0,
                         self.AC.v_target: buffer_v_target,
                         self.AC.available: buffer_avail,
                     }
 
                     test = self.AC.update_global(feed_dict)  # update parameters
-                    buffer_s,buffer_a0, buffer_a1, buffer_a2, buffer_r, buffer_avail = [], [], [], [], [], []
+                    buffer_s,buffer_a0, buffer_a1, buffer_a2, buffer_r, buffer_avail ,buffer_a0_self= [], [], [], [], [], [],[]
                     self.AC.pull_global()
 
                 total_step += 1
