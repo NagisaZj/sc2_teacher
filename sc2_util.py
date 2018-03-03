@@ -82,11 +82,10 @@ class scenv:
         f2 = ((feature == 3).astype(np.float32))
 
         if self.history is None:
-            state = np.stack((selected,  f1, f2), axis=2)
+            state = np.stack((selected, f1, f2), axis=2)
         else:
             state = np.stack(
                 (selected,
-
                  f1, f2),
                 axis=2)
         reward = obs.reward

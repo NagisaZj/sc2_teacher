@@ -14,7 +14,7 @@ import tensorlayer as tl
 scr_pixels = 64
 scr_num = 3
 regular = 0.05
-episodes = 500
+episodes = 200
 steps = 100
 lr = 1e-4
 reward_decay = 0.9
@@ -45,7 +45,7 @@ class reward_learner:
         self.value__expert = tf.reduce_sum(self.value_expert,axis = (1,2))
         #self.value_rand = tf.reduce_sum(self.value_rand, axis=(1, 2))
         self.value_max = tf.reduce_max(self.map,axis=(1,2))
-        self.loss = tf.reduce_sum(self.value_max-self.value__expert) #+  tf.reduce_sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
+        self.loss = tf.reduce_sum(self.value_max-self.value__expert) +  tf.reduce_sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
         self.opti = self.opt.minimize(self.loss)
 
         self.params = tl.layers.get_variables_with_name( 'var', True, False)
@@ -54,7 +54,8 @@ class reward_learner:
     def learn(self,state,action):
         for i in range(steps) :
             _,loss=self.sess.run([self.opti,self.loss],feed_dict={self.s:state,self.action_expert:action})
-            print(loss)
+            if i%10 ==0:            
+                print(loss)
 
     def save_ckpt(self):
         tl.files.exists_or_mkdir('var')
@@ -95,13 +96,14 @@ class generator:
             info_buffer.append([info])
             state,reward,done,info = self.env.step(1 if a0 == 0 else int(2 + a1 * scr_pixels + a2))
         state_buffer,a_buffer,info_buffer = np.vstack(state_buffer),np.vstack(a_buffer),np.vstack(info_buffer)
-        print(state_buffer.shape)
+        #print(state_buffer.shape)
         buffer_v_target = []
         v_s_ = np.zeros_like(state_buffer[0])
         for s in state_buffer[::-1]:  # reverse buffer r
             v_s_ = s + reward_decay * v_s_  # compute v target
             buffer_v_target.append(v_s_)
         buffer_v_target.reverse()
+        #self.env.reset()
 
 
         return buffer_v_target,a_buffer,info_buffer
@@ -161,10 +163,13 @@ class Util:
 
 def main(unused_argv):
     learner = reward_learner(config_irl.config)
+    learner.save_ckpt()
     gen = generator()
     for i in range(episodes):
         state,action,_=gen.generate_expert()
+        print(i)
         learner.learn(state,action)
+    learner.save_ckpt()
 
 
 

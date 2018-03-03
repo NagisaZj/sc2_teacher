@@ -14,18 +14,18 @@ from absl import flags ,app
 from sc2_util import wrap
 from sc2_util import FLAGS, flags
 
-MAX_GLOBAL_EP = 30000
+MAX_GLOBAL_EP = 5000
 GLOBAL_NET_SCOPE="Global_Net"
 UPDATE_GLOBAL_ITER = 40
 scr_pixels=64
-scr_num=5
+scr_num=3
 scr_bound=[0,scr_pixels-1]
 entropy_gamma=0.005
 steps=40
 action_speed=8
 reward_discount=GAMMA=0.9
-LR_A = 2e-5    # learning rate for actor
-LR_C = 2e-5    # learning rate for critic
+LR_A = 5e-5    # learning rate for actor
+LR_C = 5e-5    # learning rate for critic
 GLOBAL_RUNNING_R = []
 GLOBAL_EP = 0
 N_WORKERS = 64
@@ -137,9 +137,12 @@ class ACnet:
         tl.layers.initialize_global_variables(sess)
 
 
-    def update_global(self, feed_dict):  # run by a local
+    def update_global_high(self, feed_dict):  # run by a local
         _, _, t = sess.run([self.update_a_op, self.update_c_op, self.test], feed_dict)  # local grads applies to global net
         return t
+
+    def update_global_low(self,feed_dict):
+        sess.run([self.update_c_op],feed_dict)
 
     def pull_global(self):  # run by a local
         sess.run([self.pull_a_params_op, self.pull_c_params_op])
@@ -295,8 +298,8 @@ class Worker:
                         self.AC.v_target: buffer_v_target,
                         self.AC.available: buffer_avail,
                     }
+                    test = self.AC.update_global_high(feed_dict)  # update parameters
 
-                    test = self.AC.update_global(feed_dict)  # update parameters
                     buffer_s,buffer_a0, buffer_a1, buffer_a2, buffer_r, buffer_avail = [], [], [], [], [], []
                     self.AC.pull_global()
 
