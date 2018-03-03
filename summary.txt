@@ -1,0 +1,4 @@
+todo:
+kernel size
+dense layer
+reward

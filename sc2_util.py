@@ -24,7 +24,7 @@ flags.DEFINE_integer("max_agent_steps", 2500, "Total agent steps.")
 flags.DEFINE_integer("game_steps_per_episode", 0, "Game steps per episode.")
 flags.DEFINE_integer("step_mul", 8, "Game steps per agent step.")
 flags.DEFINE_bool("save_replay", False, "Whether to save a replay at the end.")
-flags.DEFINE_float("action_cost", 0, "What does it take to make an action")
+flags.DEFINE_float("action_cost", 1e-3, "What does it take to make an action")
 flags.DEFINE_float("time_cost", 0, "each time step cost certain value")
 flags.DEFINE_float("reward_scaling", 1.0, "adjust reward to proper scale")
 flags.DEFINE_float("invalid_cost", 0, "cost for invalid action")
@@ -82,12 +82,11 @@ class scenv:
         f2 = ((feature == 3).astype(np.float32))
 
         if self.history is None:
-            state = np.stack((selected, f1, f2, f1, f2), axis=2)
+            state = np.stack((selected,  f1, f2), axis=2)
         else:
             state = np.stack(
                 (selected,
-                 self.history[0],
-                 self.history[1],
+
                  f1, f2),
                 axis=2)
         reward = obs.reward

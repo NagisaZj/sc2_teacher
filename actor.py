@@ -10,11 +10,11 @@ from pysc2.agents import base_agent
 from pysc2 import lib
 from pysc2.env import environment
 from absl import flags ,app
-import teacher
+
 from sc2_util import wrap
 from sc2_util import FLAGS, flags
 
-MAX_GLOBAL_EP = 10000
+MAX_GLOBAL_EP = 30000
 GLOBAL_NET_SCOPE="Global_Net"
 UPDATE_GLOBAL_ITER = 40
 scr_pixels=64
@@ -24,11 +24,11 @@ entropy_gamma=0.005
 steps=40
 action_speed=8
 reward_discount=GAMMA=0.9
-LR_A = 0.002    # learning rate for actor
-LR_C = 0.001    # learning rate for critic
+LR_A = 2e-5    # learning rate for actor
+LR_C = 2e-5    # learning rate for critic
 GLOBAL_RUNNING_R = []
 GLOBAL_EP = 0
-N_WORKERS = 1
+N_WORKERS = 64
 N_A=2
 available_len = 524
 available_len_used = 2
@@ -59,13 +59,10 @@ class ACnet:
             with tf.variable_scope(scope): #else, build local network
                 self.s = tf.placeholder(tf.float32, [None, scr_pixels, scr_pixels, scr_num], "S")
                 self.available = tf.placeholder(tf.float32, [None, available_len_used], "available_actions")
-                self.a0 = tf.placeholder(tf.float32,[None,1],"a0")
+                self.a0 = tf.placeholder(tf.int32,[None,1],"a0")
                 self.a1 = tf.placeholder(tf.float32, [None, 1], "a1")
                 self.a2 = tf.placeholder(tf.float32, [None, 1], "a2")
                 self.v_target = tf.placeholder(tf.float32, [None, 1], 'Vtarget')
-                self.a0_in = tf.placeholder(tf.float32, [None, 1], "a0_in")
-                self.a1_in = tf.placeholder(tf.float32, [None, 1], "a1_in")
-                self.a2_in = tf.placeholder(tf.float32, [None, 1], "a2_in")
                 self._build_net()
 
 
@@ -82,11 +79,42 @@ class ACnet:
             normal_dist_2 = tf.contrib.distributions.Normal(mu_2, sigma_2)
 
             with tf.name_scope("a_loss"):    #build loss function
-                loss_0 = tf.reduce_sum(tf.square(tf.subtract(self.a0_in , self.a0)))
-                loss_1 = tf.reduce_sum(tf.square(self.a1_in - normal_dist_1.mean())*normal_dist_1.variance())
-                loss_2 = tf.reduce_sum(tf.square(self.a2_in - normal_dist_2.mean()) * normal_dist_2.variance())
+                log_prob0=tf.reduce_sum(tf.log(self.action) * tf.one_hot(self.a0, N_A, dtype=tf.float32), axis=1,
+                              keep_dims=True)
+                log_prob1 = normal_dist_1.log_prob(self.a1)
+                log_prob2 = normal_dist_2.log_prob(self.a2)
+                log_prob=tf.zeros_like(log_prob0)
+                print(self.a0.shape)
+                '''
+                for i in range(self.a0.shape[0]):
+                    if self.a0[i,0]!=0:
+                        log_prob[i,0]=log_prob0[i,0]+log_prob1[i,0]+log_prob2[i,0]
+                    else:
+                        log_prob[i,0]=log_prob0[i,0]
+                '''
+                log_prob=log_prob0+log_prob1+log_prob2
 
-                self.a_loss = loss_0 + loss_1 + loss_2
+                exp_v=log_prob*td
+
+                entropy0=-tf.reduce_sum(self.action * tf.log(self.action + 1e-5),
+                                             axis=1, keep_dims=True)
+                entropy1=normal_dist_1.entropy()
+                entropy2=normal_dist_2.entropy()
+                '''
+                for i in range(self.a0.shape[0]):
+                    if self.a0[i,0]!=0:
+                        entropy[i,0] = entropy0[i,0] + entropy1[i,0] + entropy2[i,0]
+                    else:
+                        entropy[i, 0] = entropy0[i, 0]
+                '''
+                entropy=entropy1+entropy2  #add entropy to encourage exploration
+                #entropy = tf.zeros_like(entropy)
+                # TODO: action a0(select all) and action a1(move_screen) should have different entropy and loss,
+                # TODO: as the number of parameters are different(1 for a0, and 3 for a1) HOW TO IMPLEMENT?
+
+
+                self.exp_v=entropy*entropy_gamma+exp_v
+                self.a_loss=tf.reduce_mean(-self.exp_v)
 
             with tf.name_scope('choose_a'):  # use local params to choose action
                 self.a_1 = tf.clip_by_value(tf.squeeze(normal_dist_1.sample(1), axis=0), *scr_bound)
@@ -185,31 +213,63 @@ class Util:
 
 class Worker:
     def __init__(self,name,globalAC,config_a,config_c):
-        self.env= wrap()
-        self.globalAC= globalAC
         self.name=name
+        #self.globalAC = globalAC
+        #self.globalAC.load_ckpt()
         self.AC=ACnet(name,globalAC,config_a,config_c)
+        globalAC.load_ckpt()
+        self.AC.pull_global()
+        self.env= wrap()
+        
+        
+        
 
 
+    def pre_process(self,scr,mini,multi,available):
+        scr_new=np.zeros_like(scr)
+        mini_new=np.zeros_like(mini)
+        avail_new = np.zeros([1,available_len_used],dtype=np.float32)
+        avail_new[0][0] = 1 if 7 in available else 0
+        avail_new [0][1] = 1 if 331 in available else 0
+        for i in range(scr_num):
+            scr_new[i]=scr[i]-np.mean(scr[i])
+            scr_new[i]=scr_new[i]/(np.std(scr_new[i])+1e-5)    #preprocessing
+
+            # TODO:this preprocess is not completely the same as Deepmind! HOW TO IMPROVE?
+
+        for i in range(mini_num):
+            mini_new[i]=mini[i]-np.mean(mini[i])
+            mini_new[i]=mini_new[i]/(np.std(mini_new[i])+1e-5)    #preprocessing
+        '''
+        mini_new = mini - np.ones([7,64,64])*np.mean(mini, axis=(1, 2))
+        mini_new = mini_new / (np.std(mini_new, axis=(1, 2)) + 1e-5)
+        '''
+        multi_new = np.log(multi+1)       #log to prevent large numbers
+
+        scr_new=scr_new[np.newaxis, :]
+        mini_new = mini_new[np.newaxis, :]
+        multi_new = multi_new[np.newaxis, :]
+        return scr_new,mini_new,multi_new,avail_new
 
     def work(self):
         global GLOBAL_RUNNING_R, GLOBAL_EP
+        #self.AC.pull_global()
         total_step = 1
-        buffer_s, buffer_a0 ,buffer_a1, buffer_a2, buffer_r,buffer_avail,buffer_a0_self = [], [],[],[],[],[],[]
+        buffer_s, buffer_a0 ,buffer_a1, buffer_a2, buffer_r,buffer_avail = [], [],[], [],[],[]
         while not COORD.should_stop() and GLOBAL_EP < MAX_GLOBAL_EP:
             state,_,_,info = self.env.reset()  #timestep[0] contains rewards, observations, etc. SEE pysc2 FOR MORE INFO
             ep_r=0
             while True:
-                a0,a1,a2 = teacher.action(state)
-                a0_self,_,_ = self.AC.choose_action([state],[info])
+                a0,a1,a2 = self.AC.choose_action([state],[info])
+                #print(state)
                 action = 1 if a0 == 0 else int(2 + a1 * scr_pixels + a2)
                 buffer_s.append([state])
                 buffer_avail.append([info])
                 buffer_a0.append(a0)
                 buffer_a1.append(a1)
                 buffer_a2.append(a2)
-                buffer_a0_self.append(a0_self)
                 state,reward,done,info = self.env.step(action)
+
                 buffer_r.append(reward)
                 ep_r +=  reward
                 if total_step % UPDATE_GLOBAL_ITER == 0 or done:
@@ -223,23 +283,21 @@ class Worker:
                         buffer_v_target.append(v_s_)
                     buffer_v_target.reverse()
 
-                    buffer_s,  buffer_a0, buffer_a1, buffer_a2, buffer_v_target, buffer_avail,buffer_a0_self = np.vstack(
+                    buffer_s,  buffer_a0, buffer_a1, buffer_a2, buffer_v_target, buffer_avail = np.vstack(
                         buffer_s), np.vstack(buffer_a0), np.vstack(buffer_a1 ), np.vstack(
                         buffer_a2), np.vstack(buffer_v_target), np.vstack(
-                        buffer_avail) , np.vstack(
-                        buffer_a0_self)  # put together into a single array
+                        buffer_avail)  # put together into a single array
                     feed_dict = {
                         self.AC.s: buffer_s,
-                        self.AC.a0: buffer_a0_self,
-                        self.AC.a1_in: buffer_a1,
-                        self.AC.a2_in: buffer_a2,
-                        self.AC.a0_in:buffer_a0,
+                        self.AC.a0: buffer_a0,
+                        self.AC.a1: buffer_a1,
+                        self.AC.a2: buffer_a2,
                         self.AC.v_target: buffer_v_target,
                         self.AC.available: buffer_avail,
                     }
 
                     test = self.AC.update_global(feed_dict)  # update parameters
-                    buffer_s,buffer_a0, buffer_a1, buffer_a2, buffer_r, buffer_avail ,buffer_a0_self= [], [], [], [], [], [],[]
+                    buffer_s,buffer_a0, buffer_a1, buffer_a2, buffer_r, buffer_avail = [], [], [], [], [], []
                     self.AC.pull_global()
 
                 total_step += 1
@@ -285,7 +343,7 @@ def main(unused_argv):
     global sess
     global OPT_A, OPT_C
     global COORD
-    global GLOBAL_AC
+    #global GLOBAL_AC
     sess = tf.Session()
     from config_a3c import config_a,config_c
     #test()
@@ -294,15 +352,11 @@ def main(unused_argv):
     OPT_C = tf.train.RMSPropOptimizer(LR_C, name='RMSPropC')
 
     GLOBAL_AC = ACnet(GLOBAL_NET_SCOPE,None,config_a,config_c)  # we only need its params
-    #GLOBAL_AC.load_ckpt()
+    
         #tl.layers.initialize_global_variables(sess)
         #sess.run(tf.global_variables_initializer())
 
-    workers = []
-        # Create worker
-    for i in range(N_WORKERS):
-        i_name = 'Worker_%i' % i   # worker name
-        workers.append(Worker(i_name, GLOBAL_AC,config_a,config_c))
+    
 
     COORD = tf.train.Coordinator()
 
@@ -311,6 +365,14 @@ def main(unused_argv):
     #workers[0].AC.test1.print_params()
 
     ## start TF threading
+    GLOBAL_AC.load_ckpt()
+    
+    workers = []
+        # Create worker
+    for i in range(N_WORKERS):
+        i_name = 'Worker_%i' % i   # worker name
+        workers.append(Worker(i_name, GLOBAL_AC,config_a,config_c))
+
     worker_threads = []
     for worker in workers:
         job = lambda: worker.work()

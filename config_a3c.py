@@ -22,13 +22,13 @@ class config_a:
     sigmoid = tf.nn.sigmoid
 
     bridge = Block()
-    bridge.types =          ['conv'] * 16 +['flat']
-    bridge.filters =        [16]*8 + [32] * 8 + [None]
-    bridge.kernel_sizes =   [(8, 8)] * 8+ [(4,4)]*8+[None]
-    bridge.strides =        [4] * 8 +[2]*8+ [None]
-    bridge.paddings =       ['SAME'] * 16+ [None]
-    bridge.activations =    [tanh] * 16+ [None]
-    bridge.initializers =   [xaiver]*16+ [None]
+    bridge.types =          ['conv'] * 2 +['flat']+['dense']
+    bridge.filters =        [16] + [32]  + [None] + [64]
+    bridge.kernel_sizes =   [(8, 8)] + [(4,4)]+[None] + [None]
+    bridge.strides =        [4]  +[2]+ [None] + [None]
+    bridge.paddings =       ['SAME'] * 2+ [None] + [None]
+    bridge.activations =    [tanh] * 2+ [None] + [relu]
+    bridge.initializers =   [xaiver]*2+ [None] + [xaiver]
 
     mu_1 = Block()
     mu_1.types = ['dense']
@@ -83,21 +83,21 @@ class config_c:
     tanh = tf.nn.tanh
 
     bridge = Block()
-    bridge.types =          ['conv'] * 16
-    bridge.filters =        [16]*8 + [32] * 8
-    bridge.kernel_sizes =   [(8, 8)] * 8 + [(4, 4)] * 8
-    bridge.strides =        [4] * 8 + [2] * 8
-    bridge.paddings =       ['SAME'] * 16
-    bridge.activations =    [tanh] * 16
-    bridge.initializers =   [xaiver]*16
+    bridge.types =          ['conv'] * 2
+    bridge.filters =        [16]+ [32] 
+    bridge.kernel_sizes =   [(8, 8)] + [(4, 4)] 
+    bridge.strides =        [4]  + [2] 
+    bridge.paddings =       ['SAME'] * 2
+    bridge.activations =    [tanh] * 2
+    bridge.initializers =   [xaiver]*2
 
 
 
     value = Block()
-    value.types = ['flat', 'dense', 'dense', 'dense']
-    value.filters = [None, 64, 32, 1]
+    value.types = ['flat',  'dense', 'dense']
+    value.filters = [None, 64,  1]
     value.kernel_sizes = [None] * 4
     value.strides = [None]*4
     value.paddings = [None]*4
-    value.activations = [None] + [tanh]*2 + [None]
-    value.initializers = [None] + [xaiver] * 3
+    value.activations = [None] + [relu] + [None]
+    value.initializers = [None] + [xaiver] * 2
