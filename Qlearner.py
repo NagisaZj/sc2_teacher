@@ -36,7 +36,7 @@ class learner:
             self.map_raw = Util.block(self.s, self.config.bridge, "map")
         # self.reward_0 = Util.block(self.map,self.config.reward_0,"reward_0")
         self.map = tf.image.resize_images(self.map_raw, (scr_pixels, scr_pixels))
-        self.map = tf.reshape(self.map, [-1, scr_pixels, scr_pixels])
+        #self.map = tf.reshape(self.map, [-1, scr_pixels, scr_pixels])
         self.flat = tf.contrib.layers.flatten(self.map)
         self.q_max = tf.reduce_max(self.map,axis = (1,2))
         self.prob = tf.nn.softmax(self.flat)
