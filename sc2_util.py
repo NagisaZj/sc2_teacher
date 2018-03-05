@@ -5,6 +5,9 @@ from absl import flags
 import sys
 import pdb
 import numpy as np
+import reward_teller
+import config_irl
+
 
 FLAGS=flags.FLAGS
 
@@ -54,6 +57,8 @@ class scenv:
             visualize=FLAGS.render)
         self.history = None
         self.ts = None
+        self.reward_teller = reward_teller.reward_learner(config_irl.config)
+        self.reward_teller.load_ckpt()
 
     def action_shape(self):
         # no_op + select_all, move map size
@@ -69,9 +74,9 @@ class scenv:
     def reset(self):
         self.ts = self.env.reset()
         #self.history = None
-        return self.trans_ts()
+        return self.trans_ts(0)
 
-    def trans_ts(self):
+    def trans_ts(self,action):
         obs = self.ts[0]
         feature = obs.observation["screen"][_PLAYER_RELATIVE]
         selected = obs.observation["screen"][_SELECTED].astype(np.float32)
@@ -88,7 +93,7 @@ class scenv:
                 (selected,
                  f1, f2),
                 axis=2)
-        reward = obs.reward
+        reward = self.reward_teller.reward([state],2,(action-2)%FLAGS.screen_resolution,(action-2)//FLAGS.screen_resolution)
         done = obs.last()
         self.info = np.array([a1,a2])
 
@@ -100,7 +105,7 @@ class scenv:
 
     def step(self,action):
         if (not self.info[1]) and action >1 :
-            state, reward, done, info = self.trans_ts()
+            state, reward, done, info = self.trans_ts(action)
             reward = -FLAGS.action_cost - FLAGS.time_cost - FLAGS.invalid_cost
             reward *= FLAGS.reward_scaling
 
@@ -121,7 +126,100 @@ class scenv:
 
         self.ts = self.env.step([act_fun])
 
-        state, reward, done, info = self.trans_ts()
+        state, reward, done, info = self.trans_ts(action)
+
+        reward -= action_cost
+        reward -= FLAGS.time_cost
+
+        reward *= FLAGS.reward_scaling
+
+        return state, reward, done, info
+
+
+class scenv_clean:
+    def __init__(self):
+        self.env = sc2_env.SC2Env(
+            map_name=FLAGS.game,
+            step_mul=FLAGS.step_mul,
+            game_steps_per_episode=FLAGS.game_steps_per_episode,
+            screen_size_px=(
+                FLAGS.screen_resolution,
+                FLAGS.screen_resolution),
+            minimap_size_px=(
+                FLAGS.minimap_resolution,
+                FLAGS.minimap_resolution),
+            visualize=FLAGS.render)
+        self.history = None
+        self.ts = None
+
+
+    def action_shape(self):
+        # no_op + select_all, move map size
+        return 2, (FLAGS.screen_resolution, FLAGS.screen_resolution, 1)
+
+    def state_shape(self):
+        # image + last_image + selection_map: 2 + 2 + 1
+        return (FLAGS.screen_resolution, FLAGS.screen_resolution, 5)
+
+    def render(self):
+        return self.env.render()
+
+    def reset(self):
+        self.ts = self.env.reset()
+        #self.history = None
+        return self.trans_ts(0)
+
+    def trans_ts(self,action):
+        obs = self.ts[0]
+        feature = obs.observation["screen"][_PLAYER_RELATIVE]
+        selected = obs.observation["screen"][_SELECTED].astype(np.float32)
+        available = obs.observation["available_actions"]
+        a1 = 1 if _SELECT_ARMY in available else 0
+        a2 = 1 if _MOVE_SCREEN in available else 0
+        f1 = ((feature == 1).astype(np.float32))
+        f2 = ((feature == 3).astype(np.float32))
+
+        if self.history is None:
+            state = np.stack((selected, f1, f2), axis=2)
+        else:
+            state = np.stack(
+                (selected,
+                 f1, f2),
+                axis=2)
+        reward = 0
+        done = obs.last()
+        self.info = np.array([a1,a2])
+
+        self.history = (f1, f2)
+        return state, reward, done, self.info
+
+    def close(self):
+        return self.env.close()
+
+    def step(self,action):
+        if (not self.info[1]) and action >1 :
+            state, reward, done, info = self.trans_ts(action)
+            reward = -FLAGS.action_cost - FLAGS.time_cost - FLAGS.invalid_cost
+            reward *= FLAGS.reward_scaling
+
+            return state, reward, done, info
+
+        action_cost = FLAGS.action_cost
+        if action ==0:
+            act_fun = actions.FunctionCall(_NO_OP,[])
+            action_cost = 0
+        elif action ==1 :
+            act_fun = actions.FunctionCall(_SELECT_ARMY,[_SELECT_ALL])
+        else:
+            index = action - 2
+            neutral_x = index % FLAGS.screen_resolution
+            neutral_y = index // FLAGS.screen_resolution
+            target =  [neutral_y, neutral_x]
+            act_fun = actions.FunctionCall(_MOVE_SCREEN, [_NOT_QUEUED,target])
+
+        self.ts = self.env.step([act_fun])
+
+        state, reward, done, info = self.trans_ts(action)
 
         reward -= action_cost
         reward -= FLAGS.time_cost
@@ -134,6 +232,12 @@ def wrap():
     FLAGS(sys.argv)
     sc_wrapper = scenv()
     return sc_wrapper
+
+def wrap_clean():
+    FLAGS(sys.argv)
+    sc_wrapper = scenv_clean()
+    return sc_wrapper
+
 
 if __name__=="__main__":
     FLAGS(sys.argv)
