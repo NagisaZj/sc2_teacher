@@ -12,9 +12,9 @@ scr_pixels = 64
 scr_num = 3
 scope = 'learner'
 regular = 0.05
-lr = 1e-3
+lr = 1e-4
 times_per_epoch = 100
-epoches = 100
+epoches = 3000
 class learner:
     def __init__(self,scope,config,sess):
         self.config = config
@@ -55,10 +55,13 @@ class learner:
     def train(self,state,action):
         loss = 0
         i = 0
-        while i < 300:#loss > -0.9:
-            _, loss = self.sess.run([self.opt,self.loss],feed_dict = {self.s:state,self.action:action})
+        while i < 20:#loss > -0.9:
+        
+            for y in range(239):
+                if y % 40 ==0:
+                    _, loss = self.sess.run([self.opt,self.loss],feed_dict = {self.s:[state[y]],self.action:[action[y]]})
             i = i+1
-            if i % 30 == 0:
+            if i % 10 == 0:
                 print(loss)
 
 
