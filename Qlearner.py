@@ -42,6 +42,7 @@ class learner:
         self.prob = tf.nn.softmax(self.flat)
         self.loss = -tf.reduce_sum(tf.multiply(self.prob,self.action)) #+ tf.reduce_sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
         self.opt = self.optimizer.minimize(self.loss)
+        self.params = tl.layers.get_variables_with_name(self.scope, True, False)
 
     def save_ckpt(self):
         tl.files.exists_or_mkdir(self.scope)
