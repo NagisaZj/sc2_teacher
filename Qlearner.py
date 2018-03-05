@@ -36,14 +36,15 @@ class learner:
         regularizer = tf.contrib.layers.l2_regularizer(regular)
         with tf.variable_scope('var', regularizer=regularizer) as scope:
             self.map_64 = Util.block(self.s, self.config.bridge, "map_64")
-        self.map_32 = tf.layers.max_pooling2D(self.map_64,[2,2],2,'SAME')
-        self.map_16 = tf.layers.max_pooling2D(self.map_32,[2,2],2,'SAME')
+        print(self.map_64.shape)
+        self.map_32 = tf.layers.max_pooling2d(self.map_64,[2,2],2,'SAME')
+        self.map_16 = tf.layers.max_pooling2d(self.map_32,[2,2],2,'SAME')
         self.flat_64 = tf.contrib.layers.flatten(self.map_64)
         self.flat_32 = tf.contrib.layers.flatten(self.map_32)
         self.flat_16 = tf.contrib.layers.flatten(self.map_16)
-        self.prob_64 = tf.nn.softmax(self.map_64)
-        self.prob_32 = tf.nn.softmax(self.map_32)
-        self.prob_16 = tf.nn.softmax(self.map_16)
+        self.prob_64 = tf.nn.softmax(self.flat_64)
+        self.prob_32 = tf.nn.softmax(self.flat_32)
+        self.prob_16 = tf.nn.softmax(self.flat_16)
         self.loss_64 = -tf.reduce_sum(tf.multiply(self.prob_64, self.action_64))
         self.loss_32 = -tf.reduce_sum(tf.multiply(self.prob_32, self.action_32))
         self.loss_16 = -tf.reduce_sum(tf.multiply(self.prob_16, self.action_16))
@@ -73,21 +74,21 @@ class learner:
     def train_16(self,state,action):
 
         for i in range(239):
-            _, loss = self.sess.run([self.opt16,self.loss16],feed_dict = {self.s:[state[i]],self.action:[action[i]]})
+            _, loss = self.sess.run([self.opt16,self.loss_16],feed_dict = {self.s:[state[i]],self.action_16:[action[i]]})
             if i % 30 == 0:
                 print(loss)
 
     def train_32(self,state,action):
 
         for i in range(239):
-            _, loss = self.sess.run([self.opt32,self.loss32],feed_dict = {self.s:[state[i]],self.action:[action[i]]})
+            _, loss = self.sess.run([self.opt32,self.loss_32],feed_dict = {self.s:[state[i]],self.action_32:[action[i]]})
             if i % 30 == 0:
                 print(loss)
 
     def train_64(self,state,action):
 
         for i in range(239):
-            _, loss = self.sess.run([self.opt64,self.loss64],feed_dict = {self.s:[state[i]],self.action:[action[i]]})
+            _, loss = self.sess.run([self.opt64,self.loss_64],feed_dict = {self.s:[state[i]],self.action_64:[action[i]]})
             if i % 30 == 0:
                 print(loss)
 
@@ -103,11 +104,11 @@ class generator:
         while not done:
             a0, a1, a2 = teacher.action(state, info)
             action64 = np.zeros((scr_pixels*scr_pixels,), dtype=np.float32)
-            action32 = np.zeros((scr_pixels * scr_pixels/4,), dtype=np.float32)
-            action16 = np.zeros((scr_pixels * scr_pixels/16,), dtype=np.float32)
+            action32 = np.zeros((scr_pixels * scr_pixels//4,), dtype=np.float32)
+            action16 = np.zeros((scr_pixels * scr_pixels//16,), dtype=np.float32)
             action64[a1*scr_pixels+a2] = 1
-            action32[a1 * scr_pixels/4 + a2/2] = 1
-            action16[a1 * scr_pixels/16 + a2/4] = 1
+            action32[a1 * scr_pixels//4 + a2//2] = 1
+            action16[a1 * scr_pixels//16 + a2//4] = 1
 
             state_buffer.append([state])
             a64_buffer.append([action64])
