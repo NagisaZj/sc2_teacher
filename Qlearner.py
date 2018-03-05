@@ -21,7 +21,9 @@ class learner:
         self.scope = scope
         with tf.variable_scope(scope) as scope:
             self.s = tf.placeholder(tf.float32,[None,scr_pixels,scr_pixels,scr_num],"state")
-            self.action = tf.placeholder(tf.float32,[None,scr_pixels*scr_pixels],"action")
+            self.action_64 = tf.placeholder(tf.float32,[None,scr_pixels*scr_pixels],"action_64")
+            self.action_32 = tf.placeholder(tf.float32, [None, scr_pixels * scr_pixels/4], "action_32")
+            self.action_16 = tf.placeholder(tf.float32, [None, scr_pixels * scr_pixels/16], "action_16")
             self.optimizer = tf.train.RMSPropOptimizer(lr, name='RMSProp')
             self._build_net()
             self.sess = sess
@@ -33,15 +35,22 @@ class learner:
     def _build_net(self):
         regularizer = tf.contrib.layers.l2_regularizer(regular)
         with tf.variable_scope('var', regularizer=regularizer) as scope:
-            self.map_raw = Util.block(self.s, self.config.bridge, "map")
-        # self.reward_0 = Util.block(self.map,self.config.reward_0,"reward_0")
-        self.map = tf.image.resize_images(self.map_raw, (scr_pixels, scr_pixels))
-        #self.map = tf.reshape(self.map, [-1, scr_pixels, scr_pixels])
-        self.flat = tf.contrib.layers.flatten(self.map)
-        self.q_max = tf.reduce_max(self.map,axis = (1,2))
-        self.prob = tf.nn.softmax(self.flat)
-        self.loss = -tf.reduce_sum(tf.multiply(self.prob,self.action)) #+ tf.reduce_sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
-        self.opt = self.optimizer.minimize(self.loss)
+            self.map_64 = Util.block(self.s, self.config.bridge, "map_64")
+        self.map_32 = tf.layers.max_pooling2D(self.map_64,[2,2],2,'SAME')
+        self.map_16 = tf.layers.max_pooling2D(self.map_32,[2,2],2,'SAME')
+        self.flat_64 = tf.contrib.layers.flatten(self.map_64)
+        self.flat_32 = tf.contrib.layers.flatten(self.map_32)
+        self.flat_16 = tf.contrib.layers.flatten(self.map_16)
+        self.prob_64 = tf.nn.softmax(self.map_64)
+        self.prob_32 = tf.nn.softmax(self.map_32)
+        self.prob_16 = tf.nn.softmax(self.map_16)
+        self.loss_64 = -tf.reduce_sum(tf.multiply(self.prob_64, self.action_64))
+        self.loss_32 = -tf.reduce_sum(tf.multiply(self.prob_32, self.action_32))
+        self.loss_16 = -tf.reduce_sum(tf.multiply(self.prob_16, self.action_16))
+        self.opt64 = self.optimizer.minimize(self.loss_64)
+        self.opt32 = self.optimizer.minimize(self.loss_32)
+        self.opt16 = self.optimizer.minimize(self.loss_16)
+
         self.params = tl.layers.get_variables_with_name(self.scope, True, False)
 
     def save_ckpt(self):
@@ -61,6 +70,27 @@ class learner:
             if i % 30 == 0:
                 print(loss)
 
+    def train_16(self,state,action):
+
+        for i in range(239):
+            _, loss = self.sess.run([self.opt16,self.loss16],feed_dict = {self.s:[state[i]],self.action:[action[i]]})
+            if i % 30 == 0:
+                print(loss)
+
+    def train_32(self,state,action):
+
+        for i in range(239):
+            _, loss = self.sess.run([self.opt32,self.loss32],feed_dict = {self.s:[state[i]],self.action:[action[i]]})
+            if i % 30 == 0:
+                print(loss)
+
+    def train_64(self,state,action):
+
+        for i in range(239):
+            _, loss = self.sess.run([self.opt64,self.loss64],feed_dict = {self.s:[state[i]],self.action:[action[i]]})
+            if i % 30 == 0:
+                print(loss)
+
 
 
 class generator:
@@ -69,22 +99,28 @@ class generator:
 
     def generate_expert(self):
         state, reward, done, info = self.env.reset()
-        state_buffer, a_buffer = [], []
+        state_buffer, a64_buffer,a32_buffer,a16_buffer = [], [],[],[]
         while not done:
             a0, a1, a2 = teacher.action(state, info)
-            action = np.zeros((scr_pixels*scr_pixels,), dtype=np.float32)
-            action[a1*scr_pixels+a2] = 1
-            # print(action == 1)
+            action64 = np.zeros((scr_pixels*scr_pixels,), dtype=np.float32)
+            action32 = np.zeros((scr_pixels * scr_pixels/4,), dtype=np.float32)
+            action16 = np.zeros((scr_pixels * scr_pixels/16,), dtype=np.float32)
+            action64[a1*scr_pixels+a2] = 1
+            action32[a1 * scr_pixels/4 + a2/2] = 1
+            action16[a1 * scr_pixels/16 + a2/4] = 1
+
             state_buffer.append([state])
-            a_buffer.append([action])
+            a64_buffer.append([action64])
+            a32_buffer.append([action32])
+            a16_buffer.append([action16])
 
             state, reward, done, info = self.env.step(1 if a0 == 0 else int(2 + a1 * scr_pixels + a2))
-        state_buffer, a_buffer = np.vstack(state_buffer), np.vstack(a_buffer)
+        state_buffer, a64_buffer,a32_buffer,a16_buffer = np.vstack(state_buffer), np.vstack(a64_buffer), np.vstack(a32_buffer), np.vstack(a16_buffer)
         # print(state_buffer.shape)
 
 
 
-        return state_buffer, a_buffer
+        return state_buffer, a64_buffer,a32_buffer,a16_buffer
 
 
 
@@ -122,8 +158,8 @@ def main(unused_argv):
     gen = generator()
     learn.load_ckpt()
     for t in range(epoches):
-        state,action = gen.generate_expert()
-        learn.train(state,action)
+        state,a64,a32,a16 = gen.generate_expert()
+        learn.train_16(state,a16)
     learn.save_ckpt()
 
 
