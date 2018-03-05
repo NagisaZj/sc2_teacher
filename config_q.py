@@ -21,7 +21,7 @@ class config:
     bridge.types =          ['conv'] * 3
     bridge.filters =        [16] + [16]  +[1]
     bridge.kernel_sizes =   [(8, 8)] + [(4,4)]+[(1,1)]
-    bridge.strides =        [2]  +[2]+ [1]
-    bridge.paddings =       ['SAME'] * 4
+    bridge.strides =        [1]  +[1]+ [1]
+    bridge.paddings =       ['SAME'] * 3
     bridge.activations =    [relu]+[tanh] + [None]
     bridge.initializers =   [xaiver]*3
