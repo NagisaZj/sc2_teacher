@@ -18,6 +18,7 @@ class config:
     sigmoid = tf.nn.sigmoid
 
     bridge = Block()
+<<<<<<< HEAD
     bridge.types =          ['conv'] * 3
     bridge.filters =        [16] + [16]  +[1]
     bridge.kernel_sizes =   [(8, 8)] + [(4,4)]+[(1,1)]
@@ -25,3 +26,12 @@ class config:
     bridge.paddings =       ['SAME'] * 3
     bridge.activations =    [relu]+[tanh] + [None]
     bridge.initializers =   [xaiver]*3
+=======
+    bridge.types =          ['conv'] * 10
+    bridge.filters =        [16] + [16]*8  +[1]
+    bridge.kernel_sizes =   [(8, 8)] + [(4,4)]*8+[(1,1)]
+    bridge.strides =        [2]  +[2]+ [1]*8
+    bridge.paddings =       ['SAME'] * 10
+    bridge.activations =    [relu]*8+[tanh] + [None]
+    bridge.initializers =   [xaiver]*10
+>>>>>>> fb36d8f0822e5cd851d76c0f2002a5fe869293aa
