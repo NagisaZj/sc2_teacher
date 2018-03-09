@@ -74,7 +74,7 @@ class learner:
     def train_16(self,state,action):
 
         for i in range(239):
-            _, loss = self.sess.run([self.opt16,self.loss_16],feed_dict = {self.s:[state[i]],self.action_16:[action[i]]})
+            _, loss = self.sess.run([self.opt16,self.loss_16],feed_dict = {self.s:state,self.action_16:action})
             if i % 30 == 0:
                 print(loss)
 
