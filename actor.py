@@ -13,8 +13,9 @@ from absl import flags ,app
 
 from sc2_util import wrap
 from sc2_util import FLAGS, flags
+import matplotlib.pyplot as plt
 
-MAX_GLOBAL_EP = 30000
+MAX_GLOBAL_EP = 10000
 GLOBAL_NET_SCOPE="Global_Net"
 UPDATE_GLOBAL_ITER = 40
 scr_pixels=64
@@ -28,7 +29,7 @@ LR_A = 2e-5    # learning rate for actor
 LR_C = 2e-5    # learning rate for critic
 GLOBAL_RUNNING_R = []
 GLOBAL_EP = 0
-N_WORKERS = 64
+N_WORKERS = 60
 N_A=2
 available_len = 524
 available_len_used = 2
@@ -382,6 +383,10 @@ def main(unused_argv):
     COORD.join(worker_threads)
 
     GLOBAL_AC.save_ckpt()
+    plt.plot(GLOBAL_RUNNING_R)
+    plt.show()
+    plt.plot(GLOBAL_RUNNING_R)
+    plt.savefig("a.jpg")
 
 if __name__=="__main__":
 
