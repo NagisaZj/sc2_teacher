@@ -472,6 +472,8 @@ def main(unused_argv):
     plt.show()
     plt.plot(GLOBAL_RUNNING_R)
     plt.savefig("a.jpg")
+    reward = np.array(GLOBAL_RUNNING_R,dtype = np.float32)
+    reward.tofile("10k.bin")
 
 
 if __name__ == "__main__":
