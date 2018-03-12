@@ -16,7 +16,7 @@ from sc2_util import FLAGS, flags
 import teacher
 import matplotlib.pyplot as plt
 
-MAX_GLOBAL_EP = 10000
+MAX_GLOBAL_EP = 20000
 GLOBAL_NET_SCOPE = "Global_Net"
 UPDATE_GLOBAL_ITER = 40
 scr_pixels = 64
@@ -26,8 +26,8 @@ entropy_gamma = 0.005
 steps = 40
 action_speed = 8
 reward_discount = GAMMA = 0.9
-LR_A = 2e-4  # learning rate for actor
-LR_C = 2e-4  # learning rate for critic
+LR_A = 1e-4  # learning rate for actor
+LR_C = 1e-4  # learning rate for critic
 GLOBAL_RUNNING_R = []
 GLOBAL_EP = 0
 N_WORKERS = 64
@@ -123,7 +123,7 @@ class ACnet:
                 # TODO: as the number of parameters are different(1 for a0, and 3 for a1) HOW TO IMPLEMENT?
 
 
-                self.exp_v = entropy * entropy_gamma + exp_v + self.loss_exp * 0.1 
+                self.exp_v = entropy * entropy_gamma + exp_v  
                 self.a_loss = tf.reduce_mean(-self.exp_v)
                 self.exp_loss = tf.reduce_mean(self.loss_exp)
 
