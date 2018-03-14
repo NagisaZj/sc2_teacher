@@ -16,7 +16,7 @@ from sc2_util import FLAGS, flags
 import teacher
 import matplotlib.pyplot as plt
 
-MAX_GLOBAL_EP = 5000
+MAX_GLOBAL_EP = 20000
 GLOBAL_NET_SCOPE = "Global_Net"
 UPDATE_GLOBAL_ITER = 40
 scr_pixels = 64
@@ -30,7 +30,7 @@ LR_A = 1e-4  # learning rate for actor
 LR_C = 1e-4  # learning rate for critic
 GLOBAL_RUNNING_R = []
 GLOBAL_EP = 0
-N_WORKERS = 1
+N_WORKERS = 64
 N_A = 2
 available_len = 524
 available_len_used = 2
@@ -235,7 +235,7 @@ class Worker:
         self.AC = ACnet(name, globalAC,  config_a, config_c)
         globalAC.load_ckpt()
         self.AC.pull_global()
-        self.hard = 0
+        self.hard = 1
         self.env = wrap(game[self.hard])
 
     def pre_process(self, scr, mini, multi, available):
@@ -331,10 +331,7 @@ class Worker:
                     # self.globalAC.save_ckpt()
                     # with open("/summary.txt",'w') as f:
                     #    f.write('%.lf' % ep_r)
-                    if ep_r>score_high[self.hard] or ep_r <score_low[self.hard]:
-                        self.env.close()
-                        self.hard = self.hard + 1 if ep_r>score_high[self.hard] else self.hard - 1
-                        self.env = wrap(game[self.hard])
+                    
                     break
 
     def pre_train(self):
@@ -414,6 +411,10 @@ class Worker:
                     # self.globalAC.save_ckpt()
                     # with open("/summary.txt",'w') as f:
                     #    f.write('%.lf' % ep_r)
+                    if ep_r>score_high[self.hard] or ep_r <score_low[self.hard]:
+                        self.env.close()
+                        self.hard = self.hard + 1 if ep_r>score_high[self.hard] else self.hard - 1
+                        self.env = wrap(game[self.hard])
                     break
 
 
