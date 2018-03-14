@@ -34,6 +34,7 @@ N_A=2
 available_len = 524
 available_len_used = 2
 save_path = "/models"
+game = "CollectMineralShards_20"
 
 class ACnet:
     def __init__(self,scope,globalAC=None,config_a=None, config_c=None):
@@ -226,7 +227,7 @@ class Util:
 
 class Worker:
     def __init__(self,name,globalAC,config_a,config_c):
-        self.env= wrap()
+        self.env= wrap(game)
         self.globalAC= globalAC
         self.name=name
         self.AC=ACnet(name,globalAC,config_a,config_c)
@@ -330,7 +331,7 @@ def test():
     from config_a3c import config_a, config_c
     ac = ACnet("Global_Net",None,config_a,config_c)  # we only need its params
     ac.load_ckpt()
-    env = wrap()
+    env = wrap(game)
     state, _ ,done ,info = env.reset()
     while  True:
         a0, a1, a2 = ac.choose_action([state],[info])

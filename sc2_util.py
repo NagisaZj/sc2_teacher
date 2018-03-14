@@ -40,9 +40,9 @@ _NOT_QUEUED = [0]
 _SELECT_ALL = [0]
 
 class scenv:
-    def __init__(self):
+    def __init__(self,name):
         self.env = sc2_env.SC2Env(
-            map_name=FLAGS.game,
+            map_name=name,
             step_mul=FLAGS.step_mul,
             game_steps_per_episode=FLAGS.game_steps_per_episode,
             screen_size_px=(
@@ -131,14 +131,14 @@ class scenv:
 
         return state, reward, done, info
 
-def wrap():
+def wrap(name):
     FLAGS(sys.argv)
-    sc_wrapper = scenv()
+    sc_wrapper = scenv(name)
     return sc_wrapper
 
 if __name__=="__main__":
     FLAGS(sys.argv)
-    sc_wrapper = scenv()
+    sc_wrapper = scenv("CollectMineralShards_20")
     ts = sc_wrapper.reset()
     step_sum = 0
     try:
