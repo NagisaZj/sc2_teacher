@@ -30,7 +30,7 @@ LR_A = 1e-4  # learning rate for actor
 LR_C = 1e-4  # learning rate for critic
 GLOBAL_RUNNING_R = []
 GLOBAL_EP = 0
-N_WORKERS = 64
+N_WORKERS = 1
 N_A = 2
 available_len = 524
 available_len_used = 2
@@ -386,6 +386,7 @@ class Worker:
                     #closs ,aloss,exp_loss= sess.run([self.AC.c_loss,self.AC.a_loss,self.AC.exp_loss], feed_dict=feed_dict)
                     #print("c_loss:",closs,"a_loss:",aloss,"exp_loss",exp_loss)
                     sigma_1,sigma_2 = sess.run([self.AC.sigma_1,self.AC.sigma_2],feed_dict = feed_dict)
+                    print(sigma_1,sigma_2)
                     buffer_s, buffer_a0, buffer_a1, buffer_a2, buffer_r, buffer_avail = [], [], [], [], [], []
                     buffer_a0_exp,buffer_a1_exp,buffer_a2_exp = [],[],[]
                     self.AC.pull_global()

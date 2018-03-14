@@ -9,7 +9,7 @@ import numpy as np
 FLAGS=flags.FLAGS
 
 # Important hparams
-flags.DEFINE_string("game", "CollectMineralShards", "game map name")
+flags.DEFINE_string("game", "CollectMineralShards_20", "game map name")
 
 # Irrelevant hparams
 flags.DEFINE_bool("render", False, "Whether to render with pygame.")
