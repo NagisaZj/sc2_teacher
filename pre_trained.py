@@ -37,7 +37,7 @@ available_len_used = 2
 save_path = "/models"
 game = ["CollectMineralShards_2","CollectMineralShards_5","CollectMineralShards_10","CollectMineralShards_15","CollectMineralShards_20",]
 score_high = [6,10,20,30,1000]
-score_low = [-100,5,10,15,0]
+score_low = [-100,5,10,15,-5]
 #sigma_pow = 0.10
 class ACnet:
     def __init__(self, scope, globalAC=None,  config_a=None, config_c=None):
