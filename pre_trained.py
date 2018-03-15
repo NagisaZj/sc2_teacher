@@ -22,7 +22,7 @@ UPDATE_GLOBAL_ITER = 40
 scr_pixels = 64
 scr_num = 5
 scr_bound = [0, scr_pixels - 1]
-entropy_gamma = -0.5
+entropy_gamma = -1
 steps = 40
 action_speed = 8
 reward_discount = GAMMA = 0.9
@@ -481,8 +481,8 @@ def main(unused_argv):
     COORD.join(worker_threads)
 
     GLOBAL_AC.save_ckpt()
-    plt.plot(GLOBAL_RUNNING_R)
-    plt.show()
+    #plt.plot(GLOBAL_RUNNING_R)
+    #plt.show()
     plt.plot(GLOBAL_RUNNING_R)
     plt.savefig("a.jpg")
     reward = np.array(GLOBAL_RUNNING_R,dtype = np.float32)

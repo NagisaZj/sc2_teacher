@@ -335,7 +335,7 @@ def test():
     state, _ ,done ,info = env.reset()
     while  True:
         a0, a1, a2 = ac.choose_action([state],[info])
-        #a0,a1,a2 = teacher.action(state,info)
+        a0,a1,a2 = teacher.action(state,info)
         action = 1 if a0 == 0 else int(2 + a1 * scr_pixels + a2)
         state, reward, done, info = env.step(action)
         if done :
