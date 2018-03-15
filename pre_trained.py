@@ -16,13 +16,13 @@ from sc2_util import FLAGS, flags
 import teacher
 import matplotlib.pyplot as plt
 
-MAX_GLOBAL_EP = 20000
+MAX_GLOBAL_EP = 5000
 GLOBAL_NET_SCOPE = "Global_Net"
 UPDATE_GLOBAL_ITER = 40
 scr_pixels = 64
 scr_num = 5
 scr_bound = [0, scr_pixels - 1]
-entropy_gamma = 0.005
+entropy_gamma = -0.5
 steps = 40
 action_speed = 8
 reward_discount = GAMMA = 0.9
@@ -36,8 +36,9 @@ available_len = 524
 available_len_used = 2
 save_path = "/models"
 game = ["CollectMineralShards_2","CollectMineralShards_5","CollectMineralShards_10","CollectMineralShards_15","CollectMineralShards_20",]
-score_high = [6,15,20,30,1000]
-score_low = [-100,5,10,15,20]
+score_high = [6,10,20,30,1000]
+score_low = [-100,5,10,15,0]
+#sigma_pow = 0.10
 class ACnet:
     def __init__(self, scope, globalAC=None,  config_a=None, config_c=None):
         self.scope = scope
@@ -89,6 +90,7 @@ class ACnet:
             normal_dist_2 = tf.contrib.distributions.Normal(mu_2, sigma_2)
 
             with tf.name_scope("a_loss"):  # build loss function
+                #self.sigma_loss = tf.reduce_mean(tf.square(self.sigma_1)+tf.square(self.sigma_2))
                 log_prob0 = tf.reduce_sum(tf.log(self.action) * tf.one_hot(self.a0, N_A, dtype=tf.float32), axis=1,
                                           keep_dims=True)
                 log_prob1 = normal_dist_1.log_prob(self.a1)
@@ -123,9 +125,9 @@ class ACnet:
                 # TODO: action a0(select all) and action a1(move_screen) should have different entropy and loss,
                 # TODO: as the number of parameters are different(1 for a0, and 3 for a1) HOW TO IMPLEMENT?
 
-
-                self.exp_v = entropy * entropy_gamma + exp_v  +self.loss_exp * 0.2
-                self.a_loss = tf.reduce_mean(-self.exp_v)
+                self.entropy = entropy
+                self.exp_v = entropy * entropy_gamma + exp_v  +self.loss_exp * 0.5
+                self.a_loss = tf.reduce_mean(-self.exp_v) #+ self.sigma_loss * sigma_pow
                 self.exp_loss = tf.reduce_mean(self.loss_exp)
 
             with tf.name_scope('choose_a'):  # use local params to choose action
@@ -235,7 +237,7 @@ class Worker:
         self.AC = ACnet(name, globalAC,  config_a, config_c)
         globalAC.load_ckpt()
         self.AC.pull_global()
-        self.hard = 1
+        self.hard = 4
         self.env = wrap(game[self.hard])
 
     def pre_process(self, scr, mini, multi, available):
@@ -389,7 +391,8 @@ class Worker:
                     #closs ,aloss,exp_loss= sess.run([self.AC.c_loss,self.AC.a_loss,self.AC.exp_loss], feed_dict=feed_dict)
                     #print("c_loss:",closs,"a_loss:",aloss,"exp_loss",exp_loss)
                     #sigma_1,sigma_2 = sess.run([self.AC.sigma_1,self.AC.sigma_2],feed_dict = feed_dict)
-                    #print(sigma_1,sigma_2)
+                    entropy = sess.run([self.AC.entropy],feed_dict = feed_dict)
+                    
                     buffer_s, buffer_a0, buffer_a1, buffer_a2, buffer_r, buffer_avail = [], [], [], [], [], []
                     buffer_a0_exp,buffer_a1_exp,buffer_a2_exp = [],[],[]
                     self.AC.pull_global()
@@ -408,6 +411,7 @@ class Worker:
                         # '| sigma:', test, # debug
                     )
                     GLOBAL_EP += 1
+                    print(entropy[0][0])
                     # self.globalAC.save_ckpt()
                     # with open("/summary.txt",'w') as f:
                     #    f.write('%.lf' % ep_r)
