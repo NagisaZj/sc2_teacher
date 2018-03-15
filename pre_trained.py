@@ -16,6 +16,7 @@ from sc2_util import FLAGS, flags
 import teacher
 import matplotlib.pyplot as plt
 
+supervise = 5.0
 MAX_GLOBAL_EP = 5000
 GLOBAL_NET_SCOPE = "Global_Net"
 UPDATE_GLOBAL_ITER = 40
@@ -36,8 +37,8 @@ available_len = 524
 available_len_used = 2
 save_path = "/models"
 game = ["CollectMineralShards_2","CollectMineralShards_5","CollectMineralShards_10","CollectMineralShards_15","CollectMineralShards_20",]
-score_high = [6,10,20,30,1000]
-score_low = [-100,5,10,15,-5]
+score_high = [10,15,25,35,1000]
+score_low = [-100,5,10,15,20]
 #sigma_pow = 0.10
 class ACnet:
     def __init__(self, scope, globalAC=None,  config_a=None, config_c=None):
@@ -78,6 +79,7 @@ class ACnet:
                 self._build_net()
 
                 td = tf.subtract(self.v_target, self.value, name='TD_error')
+                self.td = td
                 with tf.name_scope('c_loss'):
                     self.c_loss = tf.reduce_mean(tf.square(td))
 
@@ -126,7 +128,7 @@ class ACnet:
                 # TODO: as the number of parameters are different(1 for a0, and 3 for a1) HOW TO IMPLEMENT?
 
                 self.entropy = entropy
-                self.exp_v = entropy * entropy_gamma + exp_v  +self.loss_exp * 0.5
+                self.exp_v = entropy * entropy_gamma + exp_v  +self.loss_exp * supervise
                 self.a_loss = tf.reduce_mean(-self.exp_v) #+ self.sigma_loss * sigma_pow
                 self.exp_loss = tf.reduce_mean(self.loss_exp)
 
@@ -237,7 +239,7 @@ class Worker:
         self.AC = ACnet(name, globalAC,  config_a, config_c)
         globalAC.load_ckpt()
         self.AC.pull_global()
-        self.hard = 4
+        self.hard = 0
         self.env = wrap(game[self.hard])
 
     def pre_process(self, scr, mini, multi, available):
@@ -391,7 +393,7 @@ class Worker:
                     #closs ,aloss,exp_loss= sess.run([self.AC.c_loss,self.AC.a_loss,self.AC.exp_loss], feed_dict=feed_dict)
                     #print("c_loss:",closs,"a_loss:",aloss,"exp_loss",exp_loss)
                     #sigma_1,sigma_2 = sess.run([self.AC.sigma_1,self.AC.sigma_2],feed_dict = feed_dict)
-                    entropy = sess.run([self.AC.entropy],feed_dict = feed_dict)
+                    entropy,aloss,td,exp_loss = sess.run([self.AC.entropy,self.AC.a_loss,self.AC.td,self.AC.exp_loss],feed_dict = feed_dict)
                     
                     buffer_s, buffer_a0, buffer_a1, buffer_a2, buffer_r, buffer_avail = [], [], [], [], [], []
                     buffer_a0_exp,buffer_a1_exp,buffer_a2_exp = [],[],[]
@@ -411,7 +413,7 @@ class Worker:
                         # '| sigma:', test, # debug
                     )
                     GLOBAL_EP += 1
-                    print(entropy[0][0])
+                    print("entropy",entropy[0][0],"td",td[0],"exp_loss",exp_loss,"aloss",aloss)
                     # self.globalAC.save_ckpt()
                     # with open("/summary.txt",'w') as f:
                     #    f.write('%.lf' % ep_r)
