@@ -16,14 +16,14 @@ from sc2_util import FLAGS, flags
 import teacher
 import matplotlib.pyplot as plt
 
-supervise = 10.0
-MAX_GLOBAL_EP =10000 
+supervise = 15.0
+MAX_GLOBAL_EP =40000 
 GLOBAL_NET_SCOPE = "Global_Net"
 UPDATE_GLOBAL_ITER = 40
 scr_pixels = 64
 scr_num = 5
 scr_bound = [0, scr_pixels - 1]
-entropy_gamma = -5
+entropy_gamma = -7
 steps = 40
 action_speed = 8
 reward_discount = GAMMA = 0.9
