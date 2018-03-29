@@ -16,14 +16,14 @@ from sc2_util import FLAGS, flags
 import teacher
 import matplotlib.pyplot as plt
 
-supervise = 15.0
-MAX_GLOBAL_EP =40000 
+supervise = 10.0
+MAX_GLOBAL_EP =20000 
 GLOBAL_NET_SCOPE = "Global_Net"
 UPDATE_GLOBAL_ITER = 40
 scr_pixels = 64
 scr_num = 5
 scr_bound = [0, scr_pixels - 1]
-entropy_gamma = -7
+entropy_gamma = -5
 steps = 40
 action_speed = 8
 reward_discount = GAMMA = 0.9
@@ -37,7 +37,7 @@ available_len = 524
 available_len_used = 2
 save_path = "/models"
 game = ["CollectMineralShards_2","CollectMineralShards_5","CollectMineralShards_10","CollectMineralShards_15","CollectMineralShards_20",]
-score_high = [10,15,25,35,1000]
+score_high = [6,15,25,35,1000]
 score_low = [-100,5,10,15,20]
 #sigma_pow = 0.10
 class ACnet:
