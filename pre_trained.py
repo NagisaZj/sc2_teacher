@@ -18,7 +18,7 @@ import teacher
 import matplotlib.pyplot as plt
 
 supervise = tf.constant(10.0)
-MAX_GLOBAL_EP =20000
+MAX_GLOBAL_EP =20
 GLOBAL_NET_SCOPE = "Global_Net"
 UPDATE_GLOBAL_ITER = 40
 scr_pixels = 64
@@ -32,14 +32,14 @@ LR_A = 1e-4  # learning rate for actor
 LR_C = 1e-4  # learning rate for critic
 GLOBAL_RUNNING_R = []
 GLOBAL_EP = 0
-N_WORKERS = 64
+N_WORKERS = 4
 N_A = 2
 available_len = 524
 available_len_used = 2
 save_path = "/models"
 game = ["CollectMineralShards_2","CollectMineralShards_5","CollectMineralShards_10","CollectMineralShards_15","CollectMineralShards_20",]
 score_high = [6,15,25,35,1000]
-score_low = [-100,5,10,15,20]
+score_low = [-100,5,10,15,-100]
 hard = 4
 #sigma_pow = 0.10
 class ACnet:
@@ -488,8 +488,8 @@ def main(argv):
     GLOBAL_AC.save_ckpt()
     #plt.plot(GLOBAL_RUNNING_R)
     #plt.show()
-    plt.plot(GLOBAL_RUNNING_R)
-    plt.savefig(argv[2]+".jpg")
+    #plt.plot(GLOBAL_RUNNING_R)
+    #plt.savefig(argv[2]+".jpg")
     reward = np.array(GLOBAL_RUNNING_R,dtype = np.float32)
     reward.tofile(argv[2]+".bin")
 
