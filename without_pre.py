@@ -17,14 +17,14 @@ from sc2_util import FLAGS, flags
 import teacher
 import matplotlib.pyplot as plt
 
-supervise = tf.constant(5.0)
+
 MAX_GLOBAL_EP =10000
 GLOBAL_NET_SCOPE = "Global_Net"
 UPDATE_GLOBAL_ITER = 40
 scr_pixels = 64
 scr_num = 5
 scr_bound = [0, scr_pixels - 1]
-entropy_gamma = tf.constant(-0.5)
+entropy_gamma = tf.constant(0.05)
 steps = 40
 action_speed = 8
 reward_discount = GAMMA = 0.9
@@ -130,7 +130,7 @@ class ACnet:
                 # TODO: as the number of parameters are different(1 for a0, and 3 for a1) HOW TO IMPLEMENT?
 
                 self.entropy = entropy
-                self.exp_v = entropy * entropy_gamma + exp_v  +self.loss_exp * supervise
+                self.exp_v = entropy * entropy_gamma + exp_v
                 self.a_loss = tf.reduce_mean(-self.exp_v) #+ self.sigma_loss * sigma_pow
                 self.exp_loss = tf.reduce_mean(self.loss_exp)
 
