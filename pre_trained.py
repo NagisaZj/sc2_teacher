@@ -86,7 +86,7 @@ class ACnet:
                     else:
                         log_prob[i,0]=log_prob0[i,0]
                 '''
-                log_prob = log_prob0 + log_prob1 + log_prob2 
+                log_prob = log_prob0 + log_prob1 + log_prob2
 
                 exp_v = log_prob * td
 
@@ -423,7 +423,7 @@ def main(argv):
     global sess
     global OPT_A, OPT_C
     global COORD
-    # global GLOBAL_AC
+    global GLOBAL_AC
     supervise = tf.constant(10.0)
     MAX_GLOBAL_EP = 20000
     GLOBAL_NET_SCOPE = "Global_Net"
