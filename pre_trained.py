@@ -10,20 +10,21 @@ from pysc2.agents import base_agent
 from pysc2 import lib
 from pysc2.env import environment
 from absl import flags, app
+import sys
 
 from sc2_util import wrap
 from sc2_util import FLAGS, flags
 import teacher
 import matplotlib.pyplot as plt
 
-supervise = 10.0
+supervise = tf.constant(10.0)
 MAX_GLOBAL_EP =20000 
 GLOBAL_NET_SCOPE = "Global_Net"
 UPDATE_GLOBAL_ITER = 40
 scr_pixels = 64
 scr_num = 5
 scr_bound = [0, scr_pixels - 1]
-entropy_gamma = -5
+entropy_gamma = tf.constant(-5.0)
 steps = 40
 action_speed = 8
 reward_discount = GAMMA = 0.9
@@ -39,6 +40,7 @@ save_path = "/models"
 game = ["CollectMineralShards_2","CollectMineralShards_5","CollectMineralShards_10","CollectMineralShards_15","CollectMineralShards_20",]
 score_high = [6,15,25,35,1000]
 score_low = [-100,5,10,15,20]
+hard = 4
 #sigma_pow = 0.10
 class ACnet:
     def __init__(self, scope, globalAC=None,  config_a=None, config_c=None):
@@ -239,7 +241,7 @@ class Worker:
         self.AC = ACnet(name, globalAC,  config_a, config_c)
         globalAC.load_ckpt()
         self.AC.pull_global()
-        self.hard = 0
+        self.hard = hard
         self.env = wrap(game[self.hard])
 
     def pre_process(self, scr, mini, multi, available):
@@ -440,7 +442,7 @@ def test():
 
 # a=ACnet("Global_Net")
 
-def main(unused_argv):
+def main(argv):
     global sess
     global OPT_A, OPT_C
     global COORD
@@ -448,9 +450,9 @@ def main(unused_argv):
     sess = tf.Session()
     from config_a3c import config_a, config_c
     # test()
-
-    OPT_A = tf.train.RMSPropOptimizer(LR_A, name='RMSPropA')
-    OPT_C = tf.train.RMSPropOptimizer(LR_C, name='RMSPropC')
+    GLOBAL_NET_SCOPE = argv[2]
+    OPT_A = tf.train.RMSPropOptimizer(float(argv[1]), name='RMSPropA')
+    OPT_C = tf.train.RMSPropOptimizer(float(argv[1]), name='RMSPropC')
 
     GLOBAL_AC = ACnet(GLOBAL_NET_SCOPE, None,  config_a, config_c)  # we only need its params
 
@@ -486,13 +488,15 @@ def main(unused_argv):
     #plt.plot(GLOBAL_RUNNING_R)
     #plt.show()
     plt.plot(GLOBAL_RUNNING_R)
-    plt.savefig("a.jpg")
+    plt.savefig(argv[2]+".jpg")
     reward = np.array(GLOBAL_RUNNING_R,dtype = np.float32)
-    reward.tofile("aa.bin")
+    reward.tofile(argv[2]+".bin")
+
+
 
 
 if __name__ == "__main__":
-    app.run(main)
+    main(sys.argv)
 
 
 
