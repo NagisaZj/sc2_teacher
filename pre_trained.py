@@ -17,30 +17,7 @@ from sc2_util import FLAGS, flags
 import teacher
 import matplotlib.pyplot as plt
 
-supervise = tf.constant(10.0)
-MAX_GLOBAL_EP =20000 
-GLOBAL_NET_SCOPE = "Global_Net"
-UPDATE_GLOBAL_ITER = 40
-scr_pixels = 64
-scr_num = 5
-scr_bound = [0, scr_pixels - 1]
-entropy_gamma = tf.constant(-5.0)
-steps = 40
-action_speed = 8
-reward_discount = GAMMA = 0.9
-LR_A = 1e-4  # learning rate for actor
-LR_C = 1e-4  # learning rate for critic
-GLOBAL_RUNNING_R = []
-GLOBAL_EP = 0
-N_WORKERS = 64 
-N_A = 2
-available_len = 524
-available_len_used = 2
-save_path = "/models"
-game = ["CollectMineralShards_2","CollectMineralShards_5","CollectMineralShards_10","CollectMineralShards_15","CollectMineralShards_20",]
-score_high = [6,15,25,35,1000]
-score_low = [-100,5,10,15,20]
-hard = 4
+
 #sigma_pow = 0.10
 class ACnet:
     def __init__(self, scope, globalAC=None,  config_a=None, config_c=None):
@@ -447,6 +424,31 @@ def main(argv):
     global OPT_A, OPT_C
     global COORD
     # global GLOBAL_AC
+    supervise = tf.constant(10.0)
+    MAX_GLOBAL_EP = 20000
+    GLOBAL_NET_SCOPE = "Global_Net"
+    UPDATE_GLOBAL_ITER = 40
+    scr_pixels = 64
+    scr_num = 5
+    scr_bound = [0, scr_pixels - 1]
+    entropy_gamma = tf.constant(-5.0)
+    steps = 40
+    action_speed = 8
+    reward_discount = GAMMA = 0.9
+    LR_A = 1e-4  # learning rate for actor
+    LR_C = 1e-4  # learning rate for critic
+    GLOBAL_RUNNING_R = []
+    GLOBAL_EP = 0
+    N_WORKERS = 64
+    N_A = 2
+    available_len = 524
+    available_len_used = 2
+    save_path = "/models"
+    game = ["CollectMineralShards_2", "CollectMineralShards_5", "CollectMineralShards_10", "CollectMineralShards_15",
+            "CollectMineralShards_20", ]
+    score_high = [6, 15, 25, 35, 1000]
+    score_low = [-100, 5, 10, 15, 20]
+    hard = 4
     sess = tf.Session()
     from config_a3c import config_a, config_c
     # test()
