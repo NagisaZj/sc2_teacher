@@ -432,6 +432,10 @@ class Worker:
 
 def test(argv):
     from config_a3c import config_a, config_c
+    global GLOBAL_NET_SCOPE
+    global sess
+    sess = tf.Session()
+    GLOBAL_NET_SCOPE = argv[1]
     ac = ACnet(argv[1], None, config_a, config_c)  # we only need its params
     ac.load_ckpt()
     env = wrap(game[4])
@@ -452,7 +456,7 @@ def test(argv):
             reward_all = 0
             count = count + 1
 
-    break_count.tofile(argv[1] + ".bin")
+    break_count.tofile(argv[1] + "_s.bin")
 
 
 
