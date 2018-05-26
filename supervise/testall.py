@@ -439,7 +439,7 @@ def test(argv):
     ac = ACnet(argv[1], None, config_a, config_c)  # we only need its params
     ac.load_ckpt()
     env = wrap(game[4])
-    upper =1000
+    upper =2000
     count = 0
     reward_all = 0
     break_count = 0
@@ -455,8 +455,9 @@ def test(argv):
                 break_count = break_count+1
             reward_all = 0
             count = count + 1
-
-    break_count.tofile(argv[1] + "_s.bin")
+            print(count)
+    total = np.array(break_count)
+    total.tofile(argv[1] + "_s.bin")
 
 
 
