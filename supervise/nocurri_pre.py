@@ -18,7 +18,7 @@ import teacher
 import matplotlib.pyplot as plt
 
 supervise = tf.constant(5.0)
-MAX_GLOBAL_EP =3000
+MAX_GLOBAL_EP =5000
 GLOBAL_NET_SCOPE = "Global_Net"
 UPDATE_GLOBAL_ITER = 40
 scr_pixels = 64
